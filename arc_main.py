@@ -148,11 +148,11 @@ def main():
                 prev_x, prev_y = curr_x, curr_y
 
 
-            # 검지와 엄지를 핀 상태에서 검지를 접었을 때
+            # 검지와 엄지를 핀 상태에서 검지를 접었을 때 : 좌클릭릭
             if fingers[0] == 1 and fingers[1] == 0 and fingers[2] == 0 and fingers[3] == 0 and fingers[4] == 0:
                     autopy.mouse.click()
 
-             # 검지와 엄지, 약지를 핀 상태:  오른쪽 클릭
+             # 검지와 엄지, 소지지를 핀 상태:  오른쪽 클릭
             if fingers[0] == 1 and fingers[1] == 1 and fingers[2] == 0 and fingers[3] == 0 and fingers[4] == 1:
                     autopy.mouse.click(autopy.mouse.Button.RIGHT)
 
@@ -182,7 +182,7 @@ def main():
             if fingers[0] == 0 and fingers[1] == 0 and fingers[2] == 0 and fingers[3] == 0 and fingers[4] == 0:
                 pyautogui.scroll(scroll_down_speed)
             
-            # 약지만 폈을 때: 스크롤 업
+            # 소지만 폈을 때: 스크롤 업
             if fingers[0] == 0 and fingers[1] == 0 and fingers[2] == 0 and fingers[3] == 0 and fingers[4] == 1:
                 pyautogui.scroll(scroll_up_speed)
             """
