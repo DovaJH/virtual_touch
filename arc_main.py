@@ -151,49 +151,41 @@ def main():
             # 검지와 엄지를 핀 상태에서 검지를 접었을 때
             if fingers[0] == 1 and fingers[1] == 0 and fingers[2] == 0 and fingers[3] == 0 and fingers[4] == 0:
                     autopy.mouse.click()
-            
-            """
-            # 검지와 소지만 펴고 있을 때: 더블 클릭
-            if fingers[1] == 1 and fingers[4] == 1 and all(f == 0 for f in [fingers[0], fingers[2], fingers[3]]):
-                autopy.mouse.click()
-                autopy.mouse.click()
-            
-            # 엄지만 펴고 있을 때: 오른쪽 클릭
-            if fingers[0] == 1 and all(f == 0 for f in fingers[1:]):
-                if len(stab_buf) == stab_thresh and all(
-                    np.linalg.norm(np.array(pos) - np.array(stab_buf[0])) < stab_rad
-                    for pos in stab_buf
-                ):
-                    cv2.circle(img, (x1, y1), 15, (0, 255, 0), cv2.FILLED)
+
+             # 검지와 엄지, 약지를 핀 상태:  오른쪽 클릭
+            if fingers[0] == 1 and fingers[1] == 1 and fingers[2] == 0 and fingers[3] == 0 and fingers[4] == 1:
                     autopy.mouse.click(autopy.mouse.Button.RIGHT)
-                    stab_buf.clear()
-            
+
             # 엄지를 제외한 모든 손가락을 펴고 있을 때: 드래그
-            if fingers[0] == 0 and all(f == 1 for f in fingers[1:]):
+            if fingers[0] == 1 and fingers[1] == 1 and fingers[2] == 1 and fingers[3] == 1 and fingers[4] == 1:
                 if not hold:
                     autopy.mouse.toggle(down=True)
                     hold = True
 
+                 # 선형 보간으로 좌표 보정
                 x3 = np.interp(x1, (frameR, w - frameR), (0, scr_w))
                 y3 = np.interp(y1, (frameR, h - frameR), (0, scr_h))
-                curr_x = prev_x + (x3 - prev_x) / smooth
-                curr_y = prev_y + (y3 - prev_y) / smooth
+
+                # 마우스 이동 부드러움 처리 조절(EMA 사용)
+                curr_x = prev_x + (x3 - prev_x) * smooth_alpha
+                curr_y = prev_y + (y3 - prev_y) * smooth_alpha
+                                
+
                 autopy.mouse.move(scr_w - curr_x, curr_y)
-                cv2.circle(img, (x1, y1), 7, (255, 0, 255), cv2.FILLED)
                 prev_x, prev_y = curr_x, curr_y
             else:
                 if hold:
                     autopy.mouse.toggle(down=False)
                     hold = False
 
-            # 모든 손가락을 접고 있을 때: 스크롤 다운
-            if all(f == 0 for f in fingers):
+             # 모든 손가락을 접고 있을 때: 스크롤 다운
+            if fingers[0] == 0 and fingers[1] == 0 and fingers[2] == 0 and fingers[3] == 0 and fingers[4] == 0:
                 pyautogui.scroll(scroll_down_speed)
             
-            # 모든 손가락을 펴고 있을 때: 스크롤 업
-            if all(f == 1 for f in fingers):
+            # 약지만 폈을 때: 스크롤 업
+            if fingers[0] == 0 and fingers[1] == 0 and fingers[2] == 0 and fingers[3] == 0 and fingers[4] == 1:
                 pyautogui.scroll(scroll_up_speed)
-
+            """
             # 중지만 펴고 있을 때: 음성 인식
             if fingers[2] == 1 and all(f == 0 for f in [fingers[0], fingers[1], fingers[3], fingers[4]]):
                 text = speech_to_text()
