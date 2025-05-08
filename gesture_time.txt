@@ -1,0 +1,4 @@
+capture average : 0.01160    capture max : 0.34873    capture min : 0.00302
+land average : 0.01235    land max : 0.02602    land min : 0.01051
+gesture average : 0.00000    gesture max : 0.00096    gesture min : 0.00000
+output average : 0.00021    output max : 0.02800    output min : 0.00000

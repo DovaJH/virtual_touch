@@ -4,7 +4,7 @@ import numpy as np
 import pyautogui
 import autopy
 import time
-import speech_recognition as sr
+#import speech_recognition as sr
 
 class GestureRecognizer:
     def __init__(self):
@@ -12,7 +12,6 @@ class GestureRecognizer:
         # MediaPipe 손 인식 모델 설정
         self.mediaPipeHands = mp.solutions.hands
         self.handProcessor = self.mediaPipeHands.Hands(static_image_mode=False,  max_num_hands=1, min_detection_confidence=0.5, min_tracking_confidence=0.5)
-        
         # 손가락 끝점의 랜드마크 인덱스 (엄지, 검지, 중지, 약지, 소지)
         self.fingerTipIndices = [4, 8, 12, 16, 20]
 
@@ -66,7 +65,7 @@ class GestureRecognizer:
 
 def main():
     # 기본 설정값
-    frameR = 100  # 프레임 경계
+    frameR = 150  # 프레임 경계
     smooth = 8  # 마우스 이동 부드러움 정도
     smooth_alpha = 0.3  # 마우스 이동 부드러움 정도 조절
     prev_x, prev_y = 0, 0  # 이전 마우스 위치
@@ -118,6 +117,10 @@ def main():
     # 마우스 드래그 상태
     hold = False  
 
+    # 클릭 상태
+    left_click_state = False
+    right_click_state = False
+
     while True:
         _, img = cap.read()
         img = detector.detectHands(img)
@@ -127,18 +130,14 @@ def main():
             x1, y1 = lmList[8][1:]  # 검지 끝점 좌표
             fingers = detector.fingersRaised()
             #cv2.rectangle(img, (frameR, frameR), (w - frameR, h - frameR), (255, 0, 255), 2)
-            
-            # 검지만 펴고 있을 때: 마우스 이동
+
+            # 클릭상태 갱신
+
+            # 검지만 펴고 있을 때: 마우스 이동 (기본자세세)
             if fingers[0] == 0 and fingers[1] == 1 and fingers[2] == 0 and fingers[3] == 0 and fingers[4] == 0:
-                # 화면 끝까지 손이 안 닿았을 때 좌표를 보정해줌
+                # 선형 보간으로 좌표 보정
                 x3 = np.interp(x1, (frameR, w - frameR), (0, scr_w))
                 y3 = np.interp(y1, (frameR, h - frameR), (0, scr_h))
-
-                # 마우스 이동 부드러움 처리
-                """
-                curr_x = prev_x + (x3 - prev_x) / smooth
-                curr_y = prev_y + (y3 - prev_y) / smooth
-                """
 
                 # 마우스 이동 부드러움 처리 조절(EMA 사용)
                 curr_x = prev_x + (x3 - prev_x) * smooth_alpha
@@ -146,24 +145,14 @@ def main():
                                 
 
                 autopy.mouse.move(scr_w - curr_x, curr_y)
-                #cv2.circle(img, (x1, y1), 7, (255, 0, 255), cv2.FILLED)
                 prev_x, prev_y = curr_x, curr_y
 
-                stab_buf.append((curr_x, curr_y))
-                if len(stab_buf) > stab_thresh:
-                    stab_buf.pop(0)
+
+            # 검지와 엄지를 핀 상태에서 검지를 접었을 때
+            if fingers[0] == 1 and fingers[1] == 0 and fingers[2] == 0 and fingers[3] == 0 and fingers[4] == 0:
+                    autopy.mouse.click()
             
             """
-            # 검지와 중지를 펴고 있을 때: 왼쪽 클릭
-            if fingers[1] == 1 and fingers[2] == 1:
-                if len(stab_buf) == stab_thresh and all(
-                    np.linalg.norm(np.array(pos) - np.array(stab_buf[0])) < stab_rad
-                    for pos in stab_buf
-                ):
-                    cv2.circle(img, (x1, y1), 15, (0, 255, 0), cv2.FILLED)
-                    autopy.mouse.click()
-                    stab_buf.clear()
-            
             # 검지와 소지만 펴고 있을 때: 더블 클릭
             if fingers[1] == 1 and fingers[4] == 1 and all(f == 0 for f in [fingers[0], fingers[2], fingers[3]]):
                 autopy.mouse.click()
