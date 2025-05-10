@@ -35,9 +35,10 @@ def main():
     scr_w, scr_h = autopy.screen.size()  
 
     # 카메라 설정
+    # 해상도 고정 크기로 받아오기 -> 카메라 별로 지원 해상도가 다름
     cap = cv2.VideoCapture(0)
-    cap.set(3, scr_w/4)
-    cap.set(4, scr_h/4)
+    cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
+    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
     cap.set(cv2.CAP_PROP_FPS, 30)
 
     # 프레임 크기 가져오기
@@ -54,10 +55,11 @@ def main():
         img = detector.detect_hands(img)
         lm_list = detector.get_landmarks(img)      
 
+        
         if len(lm_list) != 0:
             fingers = detector.is_fingers_raised()
             prev_x, prev_y = detector.mouse_event(fingers, prev_x, prev_y)
-           
+        
         # FPS 표시
         curr_time = time.time()
         fps = 1 / (curr_time - prev_time)
