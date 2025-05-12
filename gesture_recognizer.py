@@ -74,54 +74,66 @@ class GestureRecognizer:
 
         return fingers
     
-    def mouse_event(self, fingers, prev_x, prev_y):
+    def mouse_event(self, fingers, prev_x, prev_y, mouse_hold_state):
         index_finger_x, index_finger_y = self.landmark_list[8][1:]  # 검지 끝점 좌표
         curr_x, curr_y = prev_x, prev_y
 
-        # 검지만 펴고 있을 때: 마우스 이동 (기본자세)
-        if fingers[0] == 0 and fingers[1] == 1 and fingers[2] == 0 and fingers[3] == 0 and fingers[4] == 0:
-            # 선형 보간으로 좌표 보정
-            new_index_finger_x = np.interp(index_finger_x, (self.boundary_revision, self.w - self.boundary_revision), (0, self.scr_w))
-            new_index_finger_y = np.interp(index_finger_y, (self.boundary_revision, self.h - self.boundary_revision), (0, self.scr_h))
 
-            # 마우스 이동 부드러움 처리 조절(EMA 사용)
-            curr_x = prev_x + (new_index_finger_x - prev_x) * self.smooth_alpha
-            curr_y = prev_y + (new_index_finger_y - prev_y) * self.smooth_alpha
-                                
-            autopy.mouse.move(self.scr_w - curr_x, curr_y)
-        
-        # 검지와 엄지를 핀 상태에서 검지를 접었을 때 : 좌클릭
-        elif fingers[0] == 1 and fingers[1] == 0 and fingers[2] == 0 and fingers[3] == 0 and fingers[4] == 0:
-            autopy.mouse.click()
+        # 엄지손가락이 펴진 상태
+        if fingers[0] == 1:
+             # 검지와 엄지를 핀 상태에서 검지를 접었을 때 : 좌클릭
+            if fingers[1] == 0 and fingers[2] == 0 and fingers[3] == 0 and fingers[4] == 0:
+                autopy.mouse.click()
 
-        # 검지와 엄지, 소지지를 핀 상태: 오른쪽 클릭
-        elif fingers[0] == 1 and fingers[1] == 1 and fingers[2] == 0 and fingers[3] == 0 and fingers[4] == 1:
-            autopy.mouse.click(autopy.mouse.Button.RIGHT)
+            # 검지와 엄지, 소지지를 핀 상태: 오른쪽 클릭
+            elif  fingers[1] == 1 and fingers[2] == 0 and fingers[3] == 0 and fingers[4] == 1:
+                autopy.mouse.click(autopy.mouse.Button.RIGHT)
 
-        # 엄지를 제외한 모든 손가락을 펴고 있을 때: 드래그
-        elif fingers[0] == 0 and fingers[1] == 1 and fingers[2] == 1 and fingers[3] == 1 and fingers[4] == 1:
-            autopy.mouse.toggle(down=True)
-
-            # 선형 보간으로 좌표 보정
-            new_index_finger_x = np.interp(index_finger_x, (self.boundary_revision, self.w - self.boundary_revision), (0, self.scr_w))
-            new_index_finger_y = np.interp(index_finger_y, (self.boundary_revision, self.h - self.boundary_revision), (0, self.scr_h))
-
-            # 마우스 이동 부드러움 처리 조절(EMA 사용)
-            curr_x = prev_x + (new_index_finger_x - prev_x) * self.smooth_alpha
-            curr_y = prev_y + (new_index_finger_y - prev_y) * self.smooth_alpha
-                                
-            autopy.mouse.move( self.scr_w - curr_x, curr_y)    
-                
-            autopy.mouse.toggle(down=False)           
-
-        # 모든 손가락을 접고 있을 때: 스크롤 다운
-        elif fingers[0] == 0 and fingers[1] == 0 and fingers[2] == 0 and fingers[3] == 0 and fingers[4] == 0:
-            pyautogui.scroll(self.scroll_down_speed)
-            
-        # 소지만 폈을 때: 스크롤 업
-        elif fingers[0] == 0 and fingers[1] == 0 and fingers[2] == 0 and fingers[3] == 0 and fingers[4] == 1:
-            pyautogui.scroll(self.scroll_up_speed)
+            else:
+                pass
+        # 엄지 손가락이 접힌 상태
         else:
-            pass
+             # 검지만 펴고 있을 때: 마우스 이동 (기본자세)
+            if fingers[1] == 1 and fingers[2] == 0 and fingers[3] == 0 and fingers[4] == 0:
+                # 선형 보간으로 좌표 보정
+                new_index_finger_x = np.interp(index_finger_x, (self.boundary_revision, self.w - self.boundary_revision), (0, self.scr_w))
+                new_index_finger_y = np.interp(index_finger_y, (self.boundary_revision, self.h - self.boundary_revision), (0, self.scr_h))
 
-        return curr_x, curr_y 
+                # 마우스 이동 부드러움 처리 조절(EMA 사용)
+                curr_x = prev_x + (new_index_finger_x - prev_x) * self.smooth_alpha
+                curr_y = prev_y + (new_index_finger_y - prev_y) * self.smooth_alpha
+                                
+                autopy.mouse.move(self.scr_w - curr_x, curr_y)  
+
+            # 모든 손가락을 접고 있을 때: 스크롤 다운
+            elif fingers[1] == 0 and fingers[2] == 0 and fingers[3] == 0 and fingers[4] == 0:
+                pyautogui.scroll(self.scroll_down_speed)
+            
+            # 소지만 폈을 때: 스크롤 업
+            elif fingers[1] == 0 and fingers[2] == 0 and fingers[3] == 0 and fingers[4] == 1:
+                pyautogui.scroll(self.scroll_up_speed)
+            else:
+                pass
+            
+        # 드래그를 위한 별도의 if문
+        # 검지, 중지만 폈을 때: 드래그
+        if fingers[0] == 0 and fingers[1] == 1 and fingers[2] == 1 and fingers[3] == 0 and fingers[4] == 0:
+            if not mouse_hold_state:
+                autopy.mouse.toggle(down=True)
+                mouse_hold_state = True
+
+            # 선형 보간으로 좌표 보정
+            new_index_finger_x = np.interp(index_finger_x, (self.boundary_revision, self.w - self.boundary_revision), (0, self.scr_w))
+            new_index_finger_y = np.interp(index_finger_y, (self.boundary_revision, self.h - self.boundary_revision), (0, self.scr_h))
+
+            # 마우스 이동 부드러움 처리 조절(EMA 사용)
+            curr_x = prev_x + (new_index_finger_x - prev_x) * self.smooth_alpha
+            curr_y = prev_y + (new_index_finger_y - prev_y) * self.smooth_alpha
+                                
+            autopy.mouse.move( self.scr_w - curr_x, curr_y)             
+        else:
+            if mouse_hold_state:
+                autopy.mouse.toggle(down=False)
+                mouse_hold_state = False
+
+        return curr_x, curr_y, mouse_hold_state

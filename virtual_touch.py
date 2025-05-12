@@ -11,6 +11,7 @@ def main():
     # 기본 설정값
     prev_x, prev_y = 0, 0  # 이전 마우스 위치
     prev_time = 0  # FPS 계산용 이전 시간
+    mouse_hold_state = False    # 마우스 홀드 상태
     
     interval = 0.01  # 타이핑 시 키 입력 간격
     timeout = 5  # 음성 인식 타임아웃
@@ -58,7 +59,7 @@ def main():
         
         if len(lm_list) != 0:
             fingers = detector.is_fingers_raised()
-            prev_x, prev_y = detector.mouse_event(fingers, prev_x, prev_y)
+            prev_x, prev_y, mouse_hold_state = detector.mouse_event(fingers, prev_x, prev_y, mouse_hold_state)
         
         # FPS 표시
         curr_time = time.time()
