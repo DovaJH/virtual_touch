@@ -78,7 +78,7 @@ class GestureRecognizer:
         index_finger_x, index_finger_y = self.landmark_list[8][1:]  # 검지 끝점 좌표
         curr_x, curr_y = prev_x, prev_y
 
-
+        
         # 엄지손가락이 펴진 상태
         if fingers[0] == 1:
              # 검지와 엄지를 핀 상태에서 검지를 접었을 때 : 좌클릭
@@ -103,7 +103,10 @@ class GestureRecognizer:
                 curr_x = prev_x + (new_index_finger_x - prev_x) * self.smooth_alpha
                 curr_y = prev_y + (new_index_finger_y - prev_y) * self.smooth_alpha
                                 
-                autopy.mouse.move(self.scr_w - curr_x, curr_y)  
+                if curr_x == 0:
+                    autopy.mouse.move(self.scr_w - 1, curr_y)        
+                else:
+                    autopy.mouse.move(self.scr_w - curr_x, curr_y)  
 
             # 모든 손가락을 접고 있을 때: 스크롤 다운
             elif fingers[1] == 0 and fingers[2] == 0 and fingers[3] == 0 and fingers[4] == 0:
@@ -129,8 +132,11 @@ class GestureRecognizer:
             # 마우스 이동 부드러움 처리 조절(EMA 사용)
             curr_x = prev_x + (new_index_finger_x - prev_x) * self.smooth_alpha
             curr_y = prev_y + (new_index_finger_y - prev_y) * self.smooth_alpha
-                                
-            autopy.mouse.move( self.scr_w - curr_x, curr_y)             
+            
+            if curr_x == 0:
+                autopy.mouse.move(self.scr_w - 1, curr_y)        
+            else:
+                autopy.mouse.move(self.scr_w - curr_x, curr_y) 
         else:
             if mouse_hold_state:
                 autopy.mouse.toggle(down=False)
