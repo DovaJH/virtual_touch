@@ -1,0 +1,1 @@
+g++ linux_input.cpp -o linux_input `pkg-config --cflags --libs opencv4` -lavdevice -lavformat -lavcodec -lswscale -lavutil
