@@ -1,0 +1,9 @@
+# Hashes of file build rules.
+e6871e9045267c828541adabae917526 mediapipe/mediapipe/framework/calculator.pb.h
+ac3fb8605631b674f4c802bc01fa4397 mediapipe/mediapipe/framework/calculator_options.pb.h
+8532b3964e982b0f78e622b8bc53fbe5 mediapipe/mediapipe/framework/formats/landmark.pb.h
+4ea3fe6e316ad014ea21e76f6b2c221f mediapipe/mediapipe/framework/mediapipe_options.pb.h
+5e503d71c0015fcc42e642eba908bc95 mediapipe/mediapipe/framework/packet_factory.pb.h
+b4914dabd8e470d3329709d93c2f5286 mediapipe/mediapipe/framework/packet_generator.pb.h
+3f0d53dbc04ac88333421b3e821cebbb mediapipe/mediapipe/framework/status_handler.pb.h
+584284b1f63cad94a485dda54f87778c mediapipe/mediapipe/framework/stream_handler.pb.h

@@ -1,0 +1,43 @@
+file(REMOVE_RECURSE
+  "CMakeFiles/virtual_touch_app.dir/main.cpp.o"
+  "CMakeFiles/virtual_touch_app.dir/main.cpp.o.d"
+  "CMakeFiles/virtual_touch_app.dir/mediapipe/mediapipe/framework/calculator.pb.cc.o"
+  "CMakeFiles/virtual_touch_app.dir/mediapipe/mediapipe/framework/calculator.pb.cc.o.d"
+  "CMakeFiles/virtual_touch_app.dir/mediapipe/mediapipe/framework/calculator_options.pb.cc.o"
+  "CMakeFiles/virtual_touch_app.dir/mediapipe/mediapipe/framework/calculator_options.pb.cc.o.d"
+  "CMakeFiles/virtual_touch_app.dir/mediapipe/mediapipe/framework/formats/landmark.pb.cc.o"
+  "CMakeFiles/virtual_touch_app.dir/mediapipe/mediapipe/framework/formats/landmark.pb.cc.o.d"
+  "CMakeFiles/virtual_touch_app.dir/mediapipe/mediapipe/framework/mediapipe_options.pb.cc.o"
+  "CMakeFiles/virtual_touch_app.dir/mediapipe/mediapipe/framework/mediapipe_options.pb.cc.o.d"
+  "CMakeFiles/virtual_touch_app.dir/mediapipe/mediapipe/framework/packet_factory.pb.cc.o"
+  "CMakeFiles/virtual_touch_app.dir/mediapipe/mediapipe/framework/packet_factory.pb.cc.o.d"
+  "CMakeFiles/virtual_touch_app.dir/mediapipe/mediapipe/framework/packet_generator.pb.cc.o"
+  "CMakeFiles/virtual_touch_app.dir/mediapipe/mediapipe/framework/packet_generator.pb.cc.o.d"
+  "CMakeFiles/virtual_touch_app.dir/mediapipe/mediapipe/framework/status_handler.pb.cc.o"
+  "CMakeFiles/virtual_touch_app.dir/mediapipe/mediapipe/framework/status_handler.pb.cc.o.d"
+  "CMakeFiles/virtual_touch_app.dir/mediapipe/mediapipe/framework/stream_handler.pb.cc.o"
+  "CMakeFiles/virtual_touch_app.dir/mediapipe/mediapipe/framework/stream_handler.pb.cc.o.d"
+  "mediapipe/mediapipe/framework/calculator.pb.cc"
+  "mediapipe/mediapipe/framework/calculator.pb.h"
+  "mediapipe/mediapipe/framework/calculator_options.pb.cc"
+  "mediapipe/mediapipe/framework/calculator_options.pb.h"
+  "mediapipe/mediapipe/framework/formats/landmark.pb.cc"
+  "mediapipe/mediapipe/framework/formats/landmark.pb.h"
+  "mediapipe/mediapipe/framework/mediapipe_options.pb.cc"
+  "mediapipe/mediapipe/framework/mediapipe_options.pb.h"
+  "mediapipe/mediapipe/framework/packet_factory.pb.cc"
+  "mediapipe/mediapipe/framework/packet_factory.pb.h"
+  "mediapipe/mediapipe/framework/packet_generator.pb.cc"
+  "mediapipe/mediapipe/framework/packet_generator.pb.h"
+  "mediapipe/mediapipe/framework/status_handler.pb.cc"
+  "mediapipe/mediapipe/framework/status_handler.pb.h"
+  "mediapipe/mediapipe/framework/stream_handler.pb.cc"
+  "mediapipe/mediapipe/framework/stream_handler.pb.h"
+  "virtual_touch_app"
+  "virtual_touch_app.pdb"
+)
+
+# Per-language clean rules from dependency scanning.
+foreach(lang CXX)
+  include(CMakeFiles/virtual_touch_app.dir/cmake_clean_${lang}.cmake OPTIONAL)
+endforeach()
