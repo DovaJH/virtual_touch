@@ -1,1 +1,3 @@
 g++ linux_input.cpp -o linux_input `pkg-config --cflags --libs opencv4` -lavdevice -lavformat -lavcodec -lswscale -lavutil
+
+LD_LIBRARY_PATH=/home/seo/virtual_touch/bazel-mediapipe/external/com_google_absl cmake .. -DCMAKE_PREFIX_PATH=$HOME/local_protobuf_28_3
