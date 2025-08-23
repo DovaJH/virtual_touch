@@ -26,8 +26,9 @@ extern "C" {
 #include "mediapipe/gpu/gpu_shared_data_internal.h"
 #include "absl/memory/memory.h"
 
-// libxdo (마우스 제어)
-#include <xdo.h>
+// X11 라이브러리 (libxdo 대체)
+#include <X11/Xlib.h>
+#include <X11/extensions/XTest.h>
 
 // Python의 np.interp와 동일한 기능을 하는 함수
 float linear_interp(float x, float in_min, float in_max, float out_min, float out_max) {
@@ -40,6 +41,13 @@ namespace GestureControl {
     const float SMOOTH_ALPHA = 0.2f;
     const int CAM_WIDTH = 640;
     const int CAM_HEIGHT = 480;
+
+    // X11 클릭을 위한 헬퍼 함수
+    void click_mouse(Display* display, unsigned int button) {
+        XTestFakeButtonEvent(display, button, True, CurrentTime); // 버튼 누르기
+        XTestFakeButtonEvent(display, button, False, CurrentTime); // 버튼 떼기
+        XFlush(display); // 이벤트 즉시 전송
+    }
 
     std::vector<int> get_raised_fingers(const mediapipe::NormalizedLandmarkList& landmarks) {
         std::vector<int> fingers(5, 0);
@@ -58,8 +66,9 @@ namespace GestureControl {
         return fingers;
     }
 
+    // handle_mouse_event의 파라미터를 xdo_t* 대신 Display*로 변경
     void handle_mouse_event(const std::vector<int>& fingers, const mediapipe::NormalizedLandmarkList& landmarks,
-                              xdo_t* xdo, int scr_w, int scr_h,
+                              Display* display, Window root, int scr_w, int scr_h,
                               float& prev_x, float& prev_y, bool& mouse_hold_state) {
         if (landmarks.landmark_size() < 9) return;
         
@@ -71,25 +80,31 @@ namespace GestureControl {
 
         if (is_drag_gesture) {
             if (!mouse_hold_state) {
-                xdo_mouse_down(xdo, CURRENTWINDOW, 1);
+                // xdo_mouse_down -> XTestFakeButtonEvent
+                XTestFakeButtonEvent(display, 1, True, CurrentTime); // 왼쪽 버튼 누르기
                 mouse_hold_state = true;
             }
             float new_x = linear_interp(index_finger_x, BOUNDARY_REVISION, CAM_WIDTH - BOUNDARY_REVISION, 0, scr_w);
             float new_y = linear_interp(index_finger_y, BOUNDARY_REVISION, CAM_HEIGHT - BOUNDARY_REVISION, 0, scr_h);
             curr_x = prev_x + (new_x - prev_x) * SMOOTH_ALPHA;
             curr_y = prev_y + (new_y - prev_y) * SMOOTH_ALPHA;
-            xdo_move_mouse(xdo, scr_w - curr_x, curr_y, 0);
+            
+            // xdo_move_mouse -> XWarpPointer
+            XWarpPointer(display, None, root, 0, 0, 0, 0, scr_w - curr_x, curr_y);
+            XFlush(display);
         } else {
             if (mouse_hold_state) {
-                xdo_mouse_up(xdo, CURRENTWINDOW, 1);
+                // xdo_mouse_up -> XTestFakeButtonEvent
+                XTestFakeButtonEvent(display, 1, False, CurrentTime); // 왼쪽 버튼 떼기
+                XFlush(display);
                 mouse_hold_state = false;
             }
             
             if (fingers[0] == 1) {
                 if (fingers[1] == 0 && fingers[2] == 0 && fingers[3] == 0 && fingers[4] == 0) {
-                    xdo_click_window(xdo, CURRENTWINDOW, 1);
+                    click_mouse(display, 1); // 왼쪽 클릭
                 } else if (fingers[1] == 1 && fingers[2] == 0 && fingers[3] == 0 && fingers[4] == 1) {
-                    xdo_click_window(xdo, CURRENTWINDOW, 3);
+                    click_mouse(display, 3); // 오른쪽 클릭
                 }
             } else {
                 if (fingers[1] == 1 && fingers[2] == 0 && fingers[3] == 0 && fingers[4] == 0) {
@@ -97,11 +112,13 @@ namespace GestureControl {
                     float new_y = linear_interp(index_finger_y, BOUNDARY_REVISION, CAM_HEIGHT - BOUNDARY_REVISION, 0, scr_h);
                     curr_x = prev_x + (new_x - prev_x) * SMOOTH_ALPHA;
                     curr_y = prev_y + (new_y - prev_y) * SMOOTH_ALPHA;
-                    xdo_move_mouse(xdo, scr_w - curr_x, curr_y, 0);
+                    
+                    XWarpPointer(display, None, root, 0, 0, 0, 0, scr_w - curr_x, curr_y);
+                    XFlush(display);
                 } else if (fingers == std::vector<int>{0,0,0,0,0}) {
-                    xdo_click_window(xdo, CURRENTWINDOW, 5);
+                    click_mouse(display, 5); // 스크롤 다운
                 } else if (fingers[4] == 1 && fingers[1] == 0 && fingers[2] == 0 && fingers[3] == 0) {
-                    xdo_click_window(xdo, CURRENTWINDOW, 4);
+                    click_mouse(display, 4); // 스크롤 업
                 }
             }
         }
@@ -111,6 +128,7 @@ namespace GestureControl {
 }
 
 int main() {
+    // ... (FFmpeg, MediaPipe 초기화 코드는 동일) ...
     avdevice_register_all();
     const char* dev_name = "/dev/video0";
     const AVInputFormat* inputFormat = av_find_input_format("v4l2");
@@ -147,15 +165,37 @@ int main() {
     SwsContext* sws_ctx = sws_getContext(codec_ctx->width, codec_ctx->height, codec_ctx->pix_fmt,
                                      codec_ctx->width, codec_ctx->height, AV_PIX_FMT_RGB24,
                                      SWS_BILINEAR, nullptr, nullptr, nullptr);
-
-    // MediaPipe 그래프 설정: HandLandmarkTrackingGpu 사용
     const std::string graph_config_str = R"pb(
         input_stream: "input_video"
-        output_stream: "landmarks"
+        output_stream: "hand_landmarks"
+
         node {
-            calculator: "HandLandmarkTrackingGpu"
-            input_stream: "IMAGE:input_video"
-            output_stream: "LANDMARKS:landmarks"
+            calculator: "FlowLimiterCalculator"
+            input_stream: "input_video"
+            input_stream: "FINISHED:hand_landmarks"
+            input_stream_info: {
+            tag_index: "FINISHED"
+            back_edge: true
+            }
+            output_stream: "throttled_input_video"
+        }
+
+        node {
+            calculator: "HandLandmarkerGpu"
+            input_stream: "IMAGE:throttled_input_video"
+            output_stream: "LANDMARKS:hand_landmarks"
+            output_stream: "WORLD_LANDMARKS:world_landmarks"
+            output_stream: "HANDEDNESS:handedness"
+            # ✅ [수정] 아래 node_options를 추가해주세요!
+            node_options: {
+                [type.googleapis.com/mediapipe.tasks.vision.hand_landmarker.proto.HandLandmarkerGraphOptions] {
+                    base_options {
+                        # 모델 파일 경로를 지정합니다. 
+                        # 실행 파일과 같은 위치에 모델을 둘 경우 "./hand_landmarker.task"로 설정하세요.
+                        model_asset_path: "./hand_landmarker.task"
+                    }
+                }
+            }
         }
     )pb";
     mediapipe::CalculatorGraphConfig config;
@@ -164,19 +204,21 @@ int main() {
     }
 
     mediapipe::CalculatorGraph graph;
-    if (!graph.Initialize(config).ok()) {
-         std::cerr << "⛔ MediaPipe 그래프 초기화 실패!" << std::endl; return -1;
-    }
-
+    // 1. GPU 리소스를 먼저 생성하고 그래프에 설정합니다.
     auto gpu_resources_status = mediapipe::GpuResources::Create();
     if (!gpu_resources_status.ok()) {
         std::cerr << "⛔ MediaPipe GPU 리소스 생성 실패!" << std::endl; return -1;
     }
-    if(!graph.SetGpuResources(gpu_resources_status.value()).ok()){
+    if (!graph.SetGpuResources(std::move(gpu_resources_status).value()).ok()) {
         std::cerr << "⛔ MediaPipe GPU 리소스 설정 실패!" << std::endl; return -1;
     }
 
-    auto poller_status = graph.AddOutputStreamPoller("landmarks");
+    // 2. GPU 리소스가 준비된 상태에서 그래프를 초기화합니다.
+    if (!graph.Initialize(config).ok()) {
+        std::cerr << "⛔ MediaPipe 그래프 초기화 실패!" << std::endl; return -1;
+    }
+
+    auto poller_status = graph.AddOutputStreamPoller("hand_landmarks");
     if (!poller_status.ok()) {
         std::cerr << "⛔ MediaPipe 출력 스트림 폴러 추가 실패!" << std::endl; return -1;
     }
@@ -185,11 +227,22 @@ int main() {
         std::cerr << "⛔ MediaPipe 그래프 실행 실패!" << std::endl; return -1;
     }
 
-    xdo_t* xdo = xdo_new(NULL);
-    unsigned int screen_width, screen_height; // int -> unsigned int로 변경
-    int screen_num = 0; // Use int for screen_num as per function signature
-    xdo_get_viewport_dimensions(xdo, &screen_width, &screen_height, screen_num);
+
+    // xdo_new -> XOpenDisplay
+    Display* display = XOpenDisplay(NULL);
+    if (display == NULL) {
+        std::cerr << "⛔ X 서버에 연결할 수 없습니다!" << std::endl;
+        return -1;
+    }
+    Window root = DefaultRootWindow(display);
     
+    // xdo_get_viewport_dimensions -> XGetGeometry
+    int screen_width, screen_height;
+    Window dummy_win;
+    int dummy_int;
+    unsigned int dummy_uint;
+    XGetGeometry(display, root, &dummy_win, &dummy_int, &dummy_int,
+                 (unsigned int*)&screen_width, (unsigned int*)&screen_height, &dummy_uint, &dummy_uint);
 
     float prev_x = 0.0f, prev_y = 0.0f;
     bool mouse_hold_state = false;
@@ -226,7 +279,9 @@ int main() {
                         if (!output_landmarks_vec.empty()) {
                             const auto& hand_landmarks = output_landmarks_vec[0];
                             std::vector<int> fingers = GestureControl::get_raised_fingers(hand_landmarks);
-                            GestureControl::handle_mouse_event(fingers, hand_landmarks, xdo, screen_width, screen_height, prev_x, prev_y, mouse_hold_state);
+                            
+                            // handle_mouse_event 호출 시 display와 root를 전달
+                            GestureControl::handle_mouse_event(fingers, hand_landmarks, display, root, screen_width, screen_height, prev_x, prev_y, mouse_hold_state);
 
                             for(int i=0; i<hand_landmarks.landmark_size(); ++i){
                                 const auto& landmark = hand_landmarks.landmark(i);
@@ -250,9 +305,17 @@ int main() {
 
 end:
     std::cout << "🛑 프로그램 종료" << std::endl;
-    graph.CloseInputStream("input_video");
-    graph.WaitUntilDone();
-    xdo_free(xdo);
+    // 수정 후
+    if (!graph.CloseInputStream("input_video").ok()) {
+        std::cerr << "⚠️ 입력 스트림 닫기 실패!" << std::endl;
+    }
+    if (!graph.WaitUntilDone().ok()) {
+        std::cerr << "⚠️ 그래프 종료 대기 실패!" << std::endl;
+    }
+    
+    // xdo_free -> XCloseDisplay
+    XCloseDisplay(display);
+
     av_frame_free(&rgb_frame);
     av_frame_free(&frame);
     av_packet_free(&pkt);

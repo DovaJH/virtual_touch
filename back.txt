@@ -10,6 +10,7 @@ find_package(PkgConfig REQUIRED)
 pkg_search_module(FFMPEG REQUIRED libavformat libavcodec libavutil libswscale libavdevice)
 find_package(glog REQUIRED)
 find_package(Threads REQUIRED)
+find_package(Protobuf REQUIRED) # Protobuf 자체는 find_package로 찾습니다.
 
 # --- X11 관련 라이브러리 찾기 ---
 find_package(X11 REQUIRED)
@@ -22,19 +23,17 @@ endif()
 set(MEDIAPIPE_ROOT "/home/seo/virtual_touch/mediapipe")
 set(MEDIAPIPE_BIN  "${MEDIAPIPE_ROOT}/bazel-bin")
 
-# --- MediaPipe 라이브러리 목록 생성 ---
-# 이제 모든 .a 파일이 빌드되었으므로, GLOB으로 간단하게 모두 찾습니다.
+# --- ✅ [수정 1] 필요한 모든 MediaPipe 및 의존성 라이브러리 탐색 ---
+# file(GLOB ...)를 다시 사용하지만, 이번엔 모든 의존성을 포함시킵니다.
 file(GLOB MEDIAPIPE_ALL_LIBS
-    "${MEDIAPIPE_BIN}/mediapipe/**/*.a"
     "${MEDIAPIPE_BIN}/mediapipe/**/*.so"
-    "${MEDIAPIPE_BIN}/external/com_google_absl/**/*.a"
-    "${MEDIAPIPE_BIN}/external/com_google_protobuf/**/*.a"
+    "${MEDIAPIPE_BIN}/external/com_google_absl/**/*.so"
+    "${MEDIAPIPE_BIN}/external/com_google_protobuf/**/*.so"
 )
 
 # --- 실행 파일 ---
 add_executable(virtual_touch_app main.cpp)
 
-# --- 헤더 파일 경로 ---
 target_include_directories(virtual_touch_app
     PRIVATE
     ${MEDIAPIPE_ROOT}
@@ -46,20 +45,21 @@ target_include_directories(virtual_touch_app
     ${X11_INCLUDE_DIR}
 )
 
-# --- 라이브러리 링크 ---
+# --- ✅ [수정 2] 링커 그룹을 사용하여 모든 라이브러리를 연결 ---
 target_link_libraries(virtual_touch_app
     PRIVATE
-    # MediaPipe 라이브러리 전체를 --whole-archive로 감싸서 강제 링크합니다.
+    # 링커 그룹 시작
     -Wl,--start-group
-    -Wl,--whole-archive
     ${MEDIAPIPE_ALL_LIBS}
-    -Wl,--no-whole-archive
+    # 링커 그룹 끝
     -Wl,--end-group
 
     # 나머지 시스템 라이브러리들
+    ${Protobuf_LIBRARIES}
     ${OpenCV_LIBS}
     glog::glog
     
+    # ✅ [수정] FFmpeg 라이브러리를 직접 나열합니다.
     avformat
     avcodec
     swscale
