@@ -186,13 +186,13 @@ int main() {
             output_stream: "LANDMARKS:hand_landmarks"
             output_stream: "WORLD_LANDMARKS:world_landmarks"
             output_stream: "HANDEDNESS:handedness"
-            # ✅ [수정] 아래 node_options를 추가해주세요!
             node_options: {
                 [type.googleapis.com/mediapipe.tasks.vision.hand_landmarker.proto.HandLandmarkerGraphOptions] {
                     base_options {
-                        # 모델 파일 경로를 지정합니다. 
-                        # 실행 파일과 같은 위치에 모델을 둘 경우 "./hand_landmarker.task"로 설정하세요.
-                        model_asset_path: "./hand_landmarker.task"
+                        # [수정] model_asset_path -> model_asset { file_name: ... } 구조로 변경
+                        model_asset {
+                            file_name: "./hand_landmarker.task"
+                        }
                     }
                 }
             }
