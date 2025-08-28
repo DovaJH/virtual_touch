@@ -15,11 +15,54 @@ cc_library(
     name = "force_link_calculators",
     deps = [
         "//mediapipe/calculators/core:flow_limiter_calculator",
-        "//mediapipe/tasks/cc/vision/hand_landmarker:hand_landmarker",  # <--- 최종 수정된 부분
+        "//mediapipe/tasks/cc/vision/hand_landmarker:hand_landmarker_graph",
     ],
     alwayslink = 1,
 )
 
+# 각 모듈을 별도의 라이브러리로 정의
+cc_library(
+    name = "mouse_controller_lib",
+    srcs = ["mouse_controller.cpp"],
+    hdrs = ["mouse_controller.h"],
+    linkopts = ["-lX11", "-lXtst"],
+)
+
+cc_library(
+    name = "gesture_controller_lib",
+    srcs = ["gesture_controller.cpp"],
+    hdrs = ["gesture_controller.h"],
+    deps = [
+        ":mouse_controller_lib",
+        "//mediapipe/tasks/cc/components/containers:landmark",
+    ],
+)
+
+cc_library(
+    name = "webcam_manager_lib",
+    srcs = ["webcam_manager.cpp"],
+    hdrs = ["webcam_manager.h"],
+    deps = [
+        "@linux_opencv//:opencv",
+        "@linux_ffmpeg//:libffmpeg",
+    ],
+)
+
+cc_library(
+    name = "virtual_touch_app_lib",
+    srcs = ["virtual_touch_app.cpp"],
+    hdrs = ["virtual_touch_app.h"],
+    deps = [
+        ":gesture_controller_lib",
+        ":mouse_controller_lib",
+        ":webcam_manager_lib",
+        "@com_google_absl//absl/status",
+        "//mediapipe/framework/formats:image",
+        "//mediapipe/tasks/cc/vision/hand_landmarker:hand_landmarker",
+    ],
+)
+
+# 최종 실행 파일
 cc_binary(
     name = "virtual_touch_app",
     srcs = ["main.cpp"],
@@ -28,23 +71,11 @@ cc_binary(
         "-lEGL",
         "-lGLESv2",
         "-lGL",
-        "-lX11",
-        "-lXtst",
     ],
     data = ["hand_landmarker.task"],
     deps = [
-        ":force_link_protos",
         ":force_link_calculators",
-        "//mediapipe/tasks/cc/vision/hand_landmarker:hand_landmarker",
-        "//mediapipe/framework:calculator_framework",
-        "//mediapipe/framework/formats:image_frame",
-        "//mediapipe/framework/formats:image_frame_opencv",
-        "//mediapipe/framework/formats:landmark_cc_proto",
-        "//mediapipe/gpu:gl_calculator_helper",
-        "//mediapipe/gpu:gpu_buffer",
-        "//mediapipe/gpu:gpu_shared_data_internal",
-        "@com_google_absl//absl/memory",
-        "@linux_opencv//:opencv",
-        "@linux_ffmpeg//:libffmpeg",
+        ":force_link_protos",
+        ":virtual_touch_app_lib",
     ],
 )
