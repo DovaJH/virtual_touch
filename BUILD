@@ -59,6 +59,9 @@ cc_library(
         "@com_google_absl//absl/status",
         "//mediapipe/framework/formats:image",
         "//mediapipe/tasks/cc/vision/hand_landmarker:hand_landmarker",
+        # --- ➕ GPU 지원을 위해 아래 두 줄을 추가하세요! ---
+        "//mediapipe/gpu:gpu_buffer",
+        "//mediapipe/gpu:gl_calculator_helper",
     ],
 )
 
@@ -77,5 +80,7 @@ cc_binary(
         ":force_link_calculators",
         ":force_link_protos",
         ":virtual_touch_app_lib",
+        # --- ➕ GPU 컨텍스트 관리를 위해 아래 의존성을 추가하세요! ---
+        "//mediapipe/gpu:gl_context",
     ],
 )

@@ -1,5 +1,6 @@
 #pragma once
 #include <vector>
+#include <string>
 #include "mediapipe/tasks/cc/components/containers/landmark.h"
 #include "mouse_controller.h"
 
@@ -7,12 +8,12 @@ class GestureController {
 public:
     GestureController(MouseController& mouse_controller);
 
-    void handle_gestures(const std::vector<mediapipe::tasks::components::containers::NormalizedLandmark>& landmarks);
+    void handle_gestures(const std::vector<mediapipe::tasks::components::containers::NormalizedLandmark>& landmarks, const std::string& hand_label);
 
 private:
     using LandmarkList = std::vector<mediapipe::tasks::components::containers::NormalizedLandmark>;
 
-    std::vector<int> get_raised_fingers(const LandmarkList& landmarks);
+    std::vector<int> get_raised_fingers(const LandmarkList& landmarks, const std::string& hand_label);
     float linear_interp(float x, float in_min, float in_max, float out_min, float out_max);
 
     MouseController& mouse_controller_;
