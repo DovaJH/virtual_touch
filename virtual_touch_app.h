@@ -3,6 +3,7 @@
 #include <memory>
 #include <mutex>
 #include <vector>
+#include <chrono> // +++ 헤더 추가 +++
 
 // 1. Status, COUNT 등의 매크로가 포함된 X11 관련 헤더들을 먼저 모두 포함합니다.
 #include <X11/X.h>
@@ -42,4 +43,5 @@ private:
     
     std::mutex landmarks_mutex_;
     std::vector<mediapipe::tasks::components::containers::NormalizedLandmark> latest_landmarks_;
+
 };

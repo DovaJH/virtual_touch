@@ -1,4 +1,5 @@
 #include "gesture_controller.h"
+#include <cmath>
 
 GestureController::GestureController(MouseController& mouse_controller)
     : mouse_controller_(mouse_controller) {}

@@ -1,5 +1,6 @@
 #include "webcam_manager.h"
 #include <iostream>
+#include <chrono> // chrono 라이브러리 포함
 
 extern "C" {
 #include <libavformat/avformat.h>
@@ -64,14 +65,19 @@ bool WebcamManager::initialize() {
 }
 
 bool WebcamManager::get_next_frame(cv::Mat& out_frame) {
-    if (av_read_frame(fmt_ctx_, pkt_) >= 0) {
+    if (av_read_frame(fmt_ctx_, pkt_) >= 0) { 
+
         if (pkt_->stream_index == video_stream_index_) {
             if (avcodec_send_packet(codec_ctx_, pkt_) == 0) {
                 if (avcodec_receive_frame(codec_ctx_, frame_) == 0) {
+
                     sws_scale(sws_ctx_, frame_->data, frame_->linesize, 0, height_, rgb_frame_->data, rgb_frame_->linesize);
+
                     cv::Mat rgb_mat(height_, width_, CV_8UC3, rgb_frame_->data[0], rgb_frame_->linesize[0]);
-                    cv::cvtColor(rgb_mat, out_frame, cv::COLOR_RGB2BGR);
+                    rgb_mat.copyTo(out_frame);                   
+                   
                     av_packet_unref(pkt_);
+                   
                     return true;
                 }
             }
