@@ -63,8 +63,6 @@ void VirtualTouchApp::run() {
     
     cv::Mat frame;  //RGB 형식
     while (true) {
-        // +++ ⏱️ 랜드마크 그리는 시간 측정 시작 +++
-        auto draw_start = std::chrono::high_resolution_clock::now();
 
         webcam_->get_next_frame(frame);
 
@@ -119,16 +117,6 @@ void VirtualTouchApp::run() {
         // 최종 결과 이미지를 화면에 보여줍니다.
         cv::imshow("Virtual Touch C++", bgr_display_frame);
         if (cv::waitKey(1) == 'q') break;
-
-        // +++ ⏱️ 랜드마크 그리는 시간 측정 종료 +++
-        auto draw_end = std::chrono::high_resolution_clock::now();
-            
-        // +++ ⏱️ 경과 시간 계산 및 출력 +++
-        std::chrono::duration<double, std::milli> draw_duration = draw_end - draw_start;
-        std::cout << "Landmark Drawing Time: " 
-                << std::fixed << std::setprecision(4) // 소수점 4자리까지 표시
-                << draw_duration.count() << " ms" << std::endl;
-
         
     }
     std::cout << "🛑 프로그램 종료" << std::endl;
