@@ -1,3 +1,5 @@
+// virtual_touch_app.cpp (수정된 전체 내용)
+
 #include "virtual_touch_app.h"
 #include "webcam_manager.h"
 #include "mouse_controller.h"
@@ -11,6 +13,7 @@
 
 VirtualTouchApp::VirtualTouchApp() = default;
 VirtualTouchApp::~VirtualTouchApp() {
+    // ✨ 스레드 종료 로직 제거
     if(landmarker_) {
         landmarker_->Close();
     }
@@ -53,6 +56,8 @@ bool VirtualTouchApp::setup() {
     }
     landmarker_ = std::move(landmarker_result.value());
 
+    // ✨ 마우스 제어 스레드 시작 로직 제거
+    
     return true;
 }
 
@@ -60,13 +65,14 @@ void VirtualTouchApp::run() {
     auto prev_time = std::chrono::high_resolution_clock::now();
     auto start_time_ = std::chrono::high_resolution_clock::now();
     std::cout << "🎬 가상 터치 시작... (q 키 또는 Ctrl+C로 종료)" << std::endl;
+    // ✨ 마우스 제어 스레드 시작 알림 제거
     
     cv::Mat frame;  //RGB 형식
     while (true) {
 
         webcam_->get_next_frame(frame);
 
-        // ✨ --- 최적화된 프레임 처리 로직 --- ✨
+        // ✨ --- 최적화된 프레임 처리 로직 (이미지 전처리) --- ✨
         auto now = std::chrono::high_resolution_clock::now();
         int64_t timestamp_ms = std::chrono::duration_cast<std::chrono::milliseconds>(now - start_time_).count();
 
@@ -75,20 +81,18 @@ void VirtualTouchApp::run() {
             mediapipe::ImageFormat::SRGB, frame.cols, frame.rows);
         
         // 2. 위에서 만든 MediaPipe 프레임의 메모리 버퍼를 직접 가리키는 cv::Mat을 생성합니다.
-        //    이 작업은 데이터를 복사하지 않고 메모리 주소만 공유합니다.
         cv::Mat destination_mat(frame.rows, frame.cols, CV_8UC3, mp_image_frame->MutablePixelData());
 
         // 3. 원본 웹캠 프레임(frame)을 좌우 반전시켜 destination_mat에 바로 씁니다.
-        //    이 과정에서 '좌우 반전'과 '데이터 복사'가 한 번의 작업으로 효율적으로 처리됩니다.
         cv::flip(frame, destination_mat, 1);
         
         mediapipe::Image mp_image(mp_image_frame);
 
         
-        // 비동기 랜드마크 감지를 호출합니다.   
+        // 비동기 랜드마크 감지를 호출합니다. (이미지 전처리는 여기서 끝)
         landmarker_->DetectAsync(mp_image, timestamp_ms);
 
-        // 랜드마크 결과를 가져와 화면에 그릴 준비를 합니다.
+        // 랜드마크 결과를 가져와 화면에 그릴 준비를 합니다. (화면 출력은 메인 스레드에서 계속)
         std::vector<mediapipe::tasks::components::containers::NormalizedLandmark> landmarks_to_draw;
         {
             std::lock_guard<std::mutex> lock(landmarks_mutex_);
@@ -132,25 +136,29 @@ void VirtualTouchApp::on_landmarks_detected(
     
     if (!result->hand_landmarks.empty()) {
         
-        // ✨ --- 수정된 부분 --- ✨
-        // handedness 결과가 비어있지 않은지 확인하고,
-        // 첫 번째 감지된 손(handedness[0])의 가장 유력한 카테고리(categories[0])에서
-        // category_name("Left" 또는 "Right")을 가져옵니다.
+        // ✨ --- 제스처 분석 및 마우스 제어 로직 통합 --- ✨
         if (!result->handedness.empty() && !result->handedness[0].categories.empty()) {
             std::string hand_label = *result->handedness[0].categories[0].category_name;
 
             const auto& landmarks = result->hand_landmarks[0].landmarks;
+            
+
+            // MediaPipe 내부 스레드에서 즉시 제스처 분석 및 마우스 제어 실행
             gesture_controller_->handle_gestures(landmarks, hand_label);
 
-
+            // 화면 그리기를 위해 랜드마크 저장
             std::lock_guard<std::mutex> lock(landmarks_mutex_);
             latest_landmarks_ = landmarks;
+            latest_hand_label_ = hand_label;
         }
-        // ✨ --- 수정 완료 --- ✨
+        // ✨ --- 통합 완료 --- ✨
 
     } else {
         // 손이 감지되지 않으면 랜드마크를 지웁니다.
         std::lock_guard<std::mutex> lock(landmarks_mutex_);
         latest_landmarks_.clear();
+        latest_hand_label_ = "";
     }   
 }
+
+// ✨ mouse_control_thread_func 함수 제거
